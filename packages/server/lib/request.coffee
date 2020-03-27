@@ -1,6 +1,6 @@
 _          = require("lodash")
-r          = require("request")
-rp         = require("request-promise")
+r          = require("@cypress/request")
+rp         = require("@cypress/request-promise")
 url        = require("url")
 tough      = require("tough-cookie")
 debug      = require("debug")("cypress:server:request")
@@ -18,6 +18,13 @@ HTTP_CLIENT_REQUEST_EVENTS = "abort connect continue information socket timeout 
 TLS_VERSION_ERROR_RE =  /TLSV1_ALERT_PROTOCOL_VERSION|UNSUPPORTED_PROTOCOL/
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+
+## sameSite from tough-cookie is slightly different from webextension API
+convertSameSiteToughToExtension = (str) =>
+  if str is "none"
+    return "no_restriction"
+
+  return str
 
 getOriginalHeaders = (req = {}) ->
   ## the request instance holds an instance
@@ -376,9 +383,9 @@ module.exports = (options = {}) ->
   rp = rp.defaults(defaults)
 
   return {
-    r: require("request")
+    r: require("@cypress/request")
 
-    rp: require("request-promise")
+    rp: require("@cypress/request-promise")
 
     getDelayForRetry
 
@@ -492,6 +499,9 @@ module.exports = (options = {}) ->
 
         if expiry <= 0
           return automationFn('clear:cookie', cookie)
+
+        cookie.sameSite = convertSameSiteToughToExtension(cookie.sameSite)
+
         automationFn('set:cookie', cookie)
 
     sendStream: (headers, automationFn, options = {}) ->
